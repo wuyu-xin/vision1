@@ -220,7 +220,7 @@ body {
 /* 图表容器：继承父容器高度，确保100%生效 */
 .con-chart {
   height: 100%;
-  width: 100%;
+  width: 100vw;
   min-height: 300px;
   /* 最小高度，避免内容过少时异常 */
   box-sizing: border-box;
