@@ -4,11 +4,11 @@ module.exports = defineConfig({
     transpileDependencies: true,
 
     // 保存时自动进行 ESLint 检查
-    lintOnSave: true,
+   lintOnSave: false,
 
     // 开发服务器配置
     devServer: {
-        port: 8080, // 自定义端口（可改成你想要的）
+        port: 8999, // 自定义端口（可改成你想要的）
         open: true, // 启动后自动打开浏览器
         host: 'localhost', // 主机地址，可改为 '0.0.0.0' 以支持局域网访问
         proxy: {

@@ -10,9 +10,13 @@ const routes = [{
 },
 {
     path: '/TrendPage',
-    component: () => {
+    component: () => 
         import('@/views/TrendPage.vue')
-    }
+},
+{
+    path: '/MapPage',
+    component: () => 
+        import('@/views/MapPage.vue')
 }
 ]
 
