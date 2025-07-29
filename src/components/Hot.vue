@@ -1,7 +1,7 @@
 <template>
     <div class='com-container'>
-        <div class='com-chart' ref='hot_ref'><span class="iconfont arr_left">&#xe6ef;</span>
-            <span class="iconfont arr_right">&#xe6ed;</span>
+        <div class='com-chart' ref='hot_ref'><span class="iconfont arr_left" @click="toLeft">&#xe6ef;</span>
+            <span class="iconfont arr_right" @click="toRight">&#xe6ed;</span>
         </div>
     </div>
 </template>
@@ -22,6 +22,20 @@ export default {
     },
     destroyed() { window.removeEventListener('resize', this.screenAdapter) },
     methods: {
+        toLeft() {
+            this.currentIndex--
+            if (this.currentIndex < 0) {
+                this.currentIndex = this.allData.length - 1
+            }
+            this.updateChart()
+        },
+        toRight() {
+            this.currentIndex++
+            if (this.currentIndex > this.allData.length - 1) {
+                this.currentIndex = 0
+            }
+            this.updateChart()
+        },
         initChart() {
             this.chartInstance = this.$echarts.init(this.$refs.hot_ref)
             const initOption = {
