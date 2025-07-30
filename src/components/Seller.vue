@@ -197,7 +197,7 @@ export default {
 }
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 /* 基础样式：确保全屏高度传递 */
 html,
 body {
@@ -219,8 +219,8 @@ body {
 
 /* 图表容器：继承父容器高度，确保100%生效 */
 .con-chart {
-  height: 100%;
-  width: 100vw;
+  height: 90%;
+  width: 100%;
   min-height: 300px;
   /* 最小高度，避免内容过少时异常 */
   box-sizing: border-box;

@@ -27,6 +27,11 @@ const routes = [{
     path: '/HotPage',
     component: () => 
         import('@/views/HotPage.vue')
+},
+{
+    path: '/StockPage',
+    component: () => 
+        import('@/views/StockPage.vue')
 }
 ]
 

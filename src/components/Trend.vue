@@ -1,8 +1,8 @@
 <template>
   <div class="com-container">
     <div class="title" :style="comStyle">
-      <span>{{ '▎ ' +  showTitle }}</span>
-      <span class="iconfont title-icon" :style="comStyle"  @click="showChoice = !showChoice"></span>
+      <span>{{ '▎ ' + showTitle }}</span>
+      <span class="iconfont title-icon" :style="comStyle" @click="showChoice = !showChoice"></span>
       <div class="select-con" v-show="showChoice" :style="marginStyle">
         <div class="select-item" v-for="item in selectTypes" :key="item.key" @click="handleSelect(item.key)">
           {{ item.text }}
@@ -15,27 +15,27 @@
 
 <script>
 export default {
-  data () {
+  data() {
     return {
       // 修正：变量名拼写错误，从 chartInstane 改为 chartInstance
-      chartInstance: null, 
+      chartInstance: null,
       allData: null,
       showChoice: false,
       choiceType: 'map',
       titleFontSize: 0
     }
   },
-  mounted () {
+  mounted() {
     // 优化：使用 $nextTick 确保 DOM 渲染完成
     this.$nextTick(() => {
-        this.initChart();
-        this.getData();
-        window.addEventListener('resize', this.screenAdapter);
-        this.screenAdapter();
+      this.initChart();
+      this.getData();
+      window.addEventListener('resize', this.screenAdapter);
+      this.screenAdapter();
     });
   },
   // 修正：添加 destroyed 钩子，清理资源
-  destroyed () {
+  destroyed() {
     window.removeEventListener('resize', this.screenAdapter);
     if (this.chartInstance) {
       this.chartInstance.dispose();
@@ -43,7 +43,7 @@ export default {
     }
   },
   computed: {
-    selectTypes () {
+    selectTypes() {
       if (!this.allData) {
         return [];
       } else {
@@ -52,28 +52,28 @@ export default {
         });
       }
     },
-    showTitle () {
+    showTitle() {
       if (!this.allData) {
         return '';
       } else {
         return this.allData[this.choiceType].title;
       }
     },
-    comStyle () {
+    comStyle() {
       return {
         fontSize: this.titleFontSize + 'px'
       };
     },
-    marginStyle () {
+    marginStyle() {
       return {
         marginLeft: this.titleFontSize + 'px'
       };
     }
   },
   methods: {
-    initChart () {
+    initChart() {
       if (this.chartInstance) {
-          this.chartInstance.dispose();
+        this.chartInstance.dispose();
       }
       // chalk 主题现在可以正确应用了
       this.chartInstance = this.$echarts.init(this.$refs.trend_ref, 'chalk');
@@ -103,16 +103,16 @@ export default {
       };
       this.chartInstance.setOption(initOption);
     },
-    async getData () {
+    async getData() {
       try {
         const { data: ret } = await this.$http.get('trend');
         this.allData = ret;
         this.updateChart();
-      } catch(e) {
+      } catch (e) {
         console.error("趋势数据请求失败：", e);
       }
     },
-    updateChart () {
+    updateChart() {
       if (!this.chartInstance) return;
 
       const colorArr1 = [
@@ -125,7 +125,7 @@ export default {
         'rgba(22, 242, 217, 0)', 'rgba(254, 33, 30, 0)',
         'rgba(250, 105, 0, 0)'
       ];
-      
+
       const timeArr = this.allData.common.month;
       const valueArr = this.allData[this.choiceType].data;
       const seriesArr = valueArr.map((item, index) => {
@@ -143,7 +143,7 @@ export default {
         }
       });
       const legendArr = valueArr.map(item => item.name);
-      
+
       const dataOption = {
         xAxis: { data: timeArr },
         legend: { data: legendArr },
@@ -151,7 +151,7 @@ export default {
       };
       this.chartInstance.setOption(dataOption);
     },
-    screenAdapter () {
+    screenAdapter() {
       if (!this.chartInstance || !this.$refs.trend_ref) return;
       this.titleFontSize = this.$refs.trend_ref.offsetWidth / 100 * 3.6;
       const adapterOption = {
@@ -167,7 +167,7 @@ export default {
       this.chartInstance.setOption(adapterOption);
       this.chartInstance.resize();
     },
-    handleSelect (currentType) {
+    handleSelect(currentType) {
       this.choiceType = currentType;
       this.updateChart();
       this.showChoice = false;
@@ -182,30 +182,36 @@ export default {
   height: 80%;
   position: relative; // 为标题定位提供基准
 }
+
 .com-chart {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
+
 .title {
   position: absolute;
   left: 20px;
   top: 20px;
   z-index: 10;
   color: white;
+
   .title-icon {
     margin-left: 10px;
     cursor: pointer;
   }
+
   .select-con {
     background-color: #222733;
     margin-top: 5px;
   }
+
   .select-item {
-      cursor: pointer;
-      padding: 5px 10px;
-      &:hover {
-          background-color: #4A5164;
-      }
+    cursor: pointer;
+    padding: 5px 10px;
+
+    &:hover {
+      background-color: #4A5164;
+    }
   }
 }
 </style>

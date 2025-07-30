@@ -4,6 +4,7 @@
     <router-link to="/MapPage">地图</router-link>
     <router-link to="/RankPage">销量柱状图</router-link>
     <router-link to="/HotPage">热销商品</router-link>
+    <router-link to="/StockPage">库存销量</router-link>
     <router-view></router-view>
   </div>
 </template>
