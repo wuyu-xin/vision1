@@ -6,33 +6,66 @@
 </template>
 
 <script>
-import axios from 'axios'
-import { getProvinceMapInfo } from '@/utils/map_utils.js'
+import axios from 'axios';
+import { getProvinceMapInfo } from '@/utils/map_utils.js';
+// 【第一步】引入 SocketService
+import SocketService from '@/utils/socket_service.js';
+
 export default {
-  data () {
+  data() {
     return {
       chartInstance: null,
       allData: null,
       mapData: {} // 所获取的省份的地图矢量数据
     }
   },
-  mounted () {
-    this.initChart()
-    this.getData()
-    window.addEventListener('resize', this.screenAdapter)
-    this.screenAdapter()
+
+  // 【第二步】在 created 中注册回调
+  created() {
+    SocketService.Instance.registerCallBack('mapData', this.getData);
   },
-  destroyed () {
-    window.removeEventListener('resize', this.screenAdapter)
+
+  mounted() {
+    this.initChart();
+
+    // 【第三步】发送获取初始数据的请求
+    // 原有的 this.getData() 已被移除
+    SocketService.Instance.send({
+      action: 'getData',
+      socketType: 'mapData', // 业务类型为 mapData
+      chartName: 'map'       // 请求的数据文件为 map.json
+    });
+
+    window.addEventListener('resize', this.screenAdapter);
+    this.screenAdapter();
   },
+
+  // 【第四步】在 destroyed 中注销回调
+  destroyed() {
+    window.removeEventListener('resize', this.screenAdapter);
+    SocketService.Instance.unRegisterCallBack('mapData');
+    if (this.chartInstance) {
+      this.chartInstance.dispose();
+      this.chartInstance = null;
+    }
+  },
+
   methods: {
-    async initChart () {
-      this.chartInstance = this.$echarts.init(this.$refs.map_ref, 'chalk')
-      // 获取中国地图的矢量数据
-      // http://localhost:8999/static/map/china.json
-      // 由于我们现在获取的地图矢量数据并不是位于KOA2的后台, 所以咱们不能使用this.$http
-      const ret = await axios.get('http://localhost:8999/static/map/china.json')
-      this.$echarts.registerMap('china', ret.data)
+    // initChart 保持 async，因为它需要异步加载地图 JSON
+    async initChart() {
+      this.chartInstance = this.$echarts.init(this.$refs.map_ref, 'chalk');
+
+      // 【保持不变】获取中国地图的矢量数据逻辑
+      // 这部分与 WebSocket 无关，是组件的初始化要求
+      try {
+        const ret = await axios.get('http://localhost:8999/static/map/china.json');
+        this.$echarts.registerMap('china', ret.data);
+      } catch (error) {
+        console.error("加载中国地图文件失败:", error);
+        // 可以在这里添加一些用户提示，例如显示“地图加载失败”
+        return;
+      }
+
       const initOption = {
         title: {
           text: '▎ 商家分布',
@@ -54,43 +87,47 @@ export default {
           bottom: '5%',
           orient: 'vertical'
         }
-      }
-      this.chartInstance.setOption(initOption)
+      };
+      this.chartInstance.setOption(initOption);
+
+      // 【保持不变】地图点击下钻的逻辑
       this.chartInstance.on('click', async arg => {
-        // arg.name 得到所点击的省份, 这个省份他是中文
-        const provinceInfo = getProvinceMapInfo(arg.name)
-        console.log(provinceInfo)
-        // 需要获取这个省份的地图矢量数据
-        // 判断当前所点击的这个省份的地图矢量数据在mapData中是否存在
+        const provinceInfo = getProvinceMapInfo(arg.name);
+        if (!provinceInfo) return; // 如果点击的是南海诸岛等，直接返回
+
         if (!this.mapData[provinceInfo.key]) {
-          const ret = await axios.get('http://localhost:8999' + provinceInfo.path)
-          this.mapData[provinceInfo.key] = ret.data
-          this.$echarts.registerMap(provinceInfo.key, ret.data)
+          try {
+            const ret = await axios.get('http://localhost:8999' + provinceInfo.path);
+            this.mapData[provinceInfo.key] = ret.data;
+            this.$echarts.registerMap(provinceInfo.key, ret.data);
+          } catch (error) {
+            console.error(`加载省份地图 ${provinceInfo.key} 失败:`, error);
+            return;
+          }
         }
         const changeOption = {
           geo: {
             map: provinceInfo.key
           }
-        }
-        this.chartInstance.setOption(changeOption)
-      })
+        };
+        this.chartInstance.setOption(changeOption);
+      });
     },
-    async getData () {
-      // 获取服务器的数据, 对this.allData进行赋值之后, 调用updateChart方法更新图表
-      const { data: ret } = await this.$http.get('map')
-      this.allData = ret
-      console.log(this.allData)
-      this.updateChart()
+
+    // 【第五步】改造 getData 为回调函数
+    // 不再需要 async 和 this.$http.get
+    getData(ret) {
+      // ret 就是从 WebSocket 推送过来的商家散点数据
+      console.log('Map.vue 收到推送的数据:', ret);
+      this.allData = ret.data;
+      this.updateChart();
     },
-    updateChart () {
-      // 处理图表需要的数据
-      // 图例的数据
-      const legendArr = this.allData.map(item => {
-        return item.name
-      })
+
+    updateChart() {
+      if (!this.allData) return; // 增加健壮性检查
+
+      const legendArr = this.allData.map(item => item.name);
       const seriesArr = this.allData.map(item => {
-        // return的这个对象就代表的是一个类别下的所有散点数据
-        // 如果想在地图中显示散点的数据, 我们需要给散点的图表增加一个配置, coordinateSystem:geo
         return {
           type: 'effectScatter',
           rippleEffect: {
@@ -100,18 +137,20 @@ export default {
           name: item.name,
           data: item.children,
           coordinateSystem: 'geo'
-        }
-      })
+        };
+      });
       const dataOption = {
         legend: {
           data: legendArr
         },
         series: seriesArr
-      }
-      this.chartInstance.setOption(dataOption)
+      };
+      this.chartInstance.setOption(dataOption);
     },
-    screenAdapter () {
-      const titleFontSize = this.$refs.map_ref.offsetWidth / 100 * 3.6
+
+    screenAdapter() {
+      if (!this.chartInstance || !this.$refs.map_ref) return;
+      const titleFontSize = this.$refs.map_ref.offsetWidth / 100 * 3.6;
       const adapterOption = {
         title: {
           textStyle: {
@@ -126,26 +165,27 @@ export default {
             fontSize: titleFontSize / 2
           }
         }
-      }
-      this.chartInstance.setOption(adapterOption)
-      this.chartInstance.resize()
+      };
+      this.chartInstance.setOption(adapterOption);
+      this.chartInstance.resize();
     },
-    // 回到中国地图
-    revertMap () {
+
+    revertMap() {
       const revertOption = {
         geo: {
           map: 'china'
         }
-      }
-      this.chartInstance.setOption(revertOption)
+      };
+      this.chartInstance.setOption(revertOption);
     }
   }
 }
 </script>
-
-<style lang='less' scoped>.com-page {
+<style lang='less' scoped>
+.com-page {
   width: 100%;
-  height: 100vh; /* vh 是视口高度单位，100vh 代表整个屏幕的高度 */
+  height: 100vh;
+  /* vh 是视口高度单位，100vh 代表整个屏幕的高度 */
 }
 
 .com-container {

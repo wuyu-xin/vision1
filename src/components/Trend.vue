@@ -14,6 +14,7 @@
 </template>
 
 <script>
+import SocketService from '@/utils/socket_service.js';
 export default {
   data() {
     return {
@@ -25,11 +26,27 @@ export default {
       titleFontSize: 0
     }
   },
+  created() {
+    // 告诉 SocketService：当收到类型为 'trendData' 的消息时，
+    // 请调用本组件的 getData 方法来处理。
+    SocketService.Instance.registerCallBack('trendData', this.getData);
+  },
+  // 在 Trend.vue 中
   mounted() {
-    // 优化：使用 $nextTick 确保 DOM 渲染完成
     this.$nextTick(() => {
       this.initChart();
-      this.getData();
+
+      // 【核心修正】: 删除或注释掉这一行！
+      // 因为 getData 现在是回调函数，不应该在这里被直接调用。
+      // this.getData(); 
+
+      // 只保留通过 WebSocket 发送数据请求的逻辑
+      SocketService.Instance.send({
+        action: 'getData',
+        socketType: 'trendData',
+        chartName: 'trend'
+      });
+
       window.addEventListener('resize', this.screenAdapter);
       this.screenAdapter();
     });
@@ -37,6 +54,10 @@ export default {
   // 修正：添加 destroyed 钩子，清理资源
   destroyed() {
     window.removeEventListener('resize', this.screenAdapter);
+
+    // 告诉 SocketService，我这个组件要销毁了，不再需要 trendData 的消息了
+    SocketService.Instance.unRegisterCallBack('trendData');
+
     if (this.chartInstance) {
       this.chartInstance.dispose();
       this.chartInstance = null;
@@ -103,14 +124,19 @@ export default {
       };
       this.chartInstance.setOption(initOption);
     },
-    async getData() {
-      try {
-        const { data: ret } = await this.$http.get('trend');
-        this.allData = ret;
-        this.updateChart();
-      } catch (e) {
-        console.error("趋势数据请求失败：", e);
-      }
+    getData(ret) {
+      // `ret` 就是 SocketService 传递过来的、从服务器推送的、已经解析好的 JSON 数据
+      console.log('Trend.vue 收到推送的数据:', ret); // 添加日志方便调试
+
+      // 【重要】根据您的描述，服务端返回的数据中，真实的图表数据在 .data 字段里
+      // 并且可能是一个 JSON 字符串，需要再次解析
+      // this.allData = ret.data; // 假设 ret 的结构是 { action: 'getData', data: {...} }
+      // 【更新】根据您的描述 `this.callBackMapping[socketType].call(this, JSON.parse(realData))`
+      // 这意味着传递给 getData 的 `ret` 已经是被 JSON.parse 过的真实数据了。
+      this.allData = ret.data;
+
+      // 拿到数据后，立即更新图表
+      this.updateChart();
     },
     updateChart() {
       if (!this.chartInstance) return;

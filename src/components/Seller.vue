@@ -5,6 +5,7 @@
 </template>
 
 <script>
+import SocketService from '@/utils/socket_service.js';
 export default {
   data() {
     return {
@@ -15,23 +16,35 @@ export default {
       timeId: null
     }
   },
+  created() {
+    if (this.$socket) {
+      this.$socket.registerCallBack('sellerData', this.getData)
+      // xxx的可选值有: trendData,sellerData,mapData,rankData,hotData,stockData
+    }
+  },
   mounted() {
     // 等待DOM和布局完全稳定后初始化
     this.$nextTick(() => {
       setTimeout(() => {
         this.initChart()
-        this.getData()
+        // this.getData()
+        this.$socket.send({
+          action: 'getData',
+          socketType: 'sellerData',
+          chartName: 'seller'
+        })
         window.addEventListener('resize', this.screenAdapter)
         this.screenAdapter()
       }, 200) // 延迟确保flex布局计算完成
     })
   },
-  beforeDestroy() {
+  Destroyed() {
     clearInterval(this.timeId)
     window.removeEventListener('resize', this.screenAdapter)
     if (this.chartInstance) {
       this.chartInstance.dispose()
     }
+    this.$socket.unRegisterCallBack('sellerData')
   },
   methods: {
     initChart() {
@@ -112,27 +125,21 @@ export default {
       })
     },
 
-    async getData() {
-      try {
-        const res = await this.$http.get('seller')
-        const ret = res.data || []
+    async getData(ret) {
+      console.log('Seller.vue 收到推送的数据:', ret);
+      // ret 就是后端推送的、已经解析好的 seller.json 的内容
+      this.allData = ret.data;
 
-        if (!Array.isArray(ret)) {
-          console.error('接口数据格式错误:', ret)
-          return
-        }
-
-        // 过滤并排序数据
-        this.allData = ret
-          .filter(item => item && item.name && typeof item.value === 'number')
-          .sort((a, b) => a.value - b.value)
-
-        this.totalPage = Math.max(1, Math.ceil(this.allData.length / 5))
-        this.startInterval()
-        this.updateCharts()
-      } catch (err) {
-        console.error('数据请求失败:', err)
+      if (!Array.isArray(this.allData)) {
+        console.error('接收到的数据格式错误:', this.allData);
+        this.allData = []; // 防止后续代码报错
       }
+
+      this.allData.sort((a, b) => a.value - b.value);
+      this.totalPage = Math.ceil(this.allData.length / 5);
+      this.currentPage = 1; // 每次收到新数据都从第一页开始
+      this.updateCharts();
+      this.startInterval();
     },
 
     updateCharts() {
