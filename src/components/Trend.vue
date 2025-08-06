@@ -205,7 +205,7 @@ export default {
 <style lang="less" scoped>
 .com-container {
   width: 100%;
-  height: 80%;
+  height: 100%;
   position: relative; // 为标题定位提供基准
 }
 

@@ -215,9 +215,9 @@ body {
   /* 禁止页面滚动 */
 }
 
-/* 父容器：全屏高度，flex布局 */
+/* 父容器：适应父元素高度，flex布局 */
 .com-container {
-  height: 100vh;
+  height: 100%;
   width: 100%;
   display: flex;
   /* 如需水平居中图表，可保留下面一行 */
@@ -226,7 +226,7 @@ body {
 
 /* 图表容器：继承父容器高度，确保100%生效 */
 .con-chart {
-  height: 90%;
+  height: 100%;
   width: 100%;
   min-height: 300px;
   /* 最小高度，避免内容过少时异常 */

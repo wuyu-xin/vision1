@@ -125,7 +125,7 @@ export default {
             const seriesArr = showData.map((item, index) => {
                 return {
                     type: 'pie',
-                    radius: ['30%', '40%'],
+                    radius: ['29%', '35%'],
                     center: centerPoints[index],
                     data: [
                         { name: item.name + '\n\n' + item.sales, value: item.sales, itemStyle: { color: new this.$echarts.graphic.LinearGradient(0, 1, 0, 0, [{ offset: 0, color: colorArrs[index][0] }, { offset: 1, color: colorArrs[index][1] }]) } },
@@ -157,12 +157,14 @@ export default {
             // 【增加保护性判断】只有在 allData 存在时，才执行依赖数据的这部分逻辑
             if (this.allData) {
                 const seriesAdapters = this.allData.slice(0, 5).map(() => {
-                    const innerRadius = this.titleFontSize * 2.8;
-                    const outterRadius = innerRadius * 1.15;
+                    // 限制圆形图表的最大和最小半径，防止过大或过小
+                    const baseFontSize = Math.min(Math.max(this.titleFontSize, 12), 20);
+                    const innerRadius = Math.min(baseFontSize * 2.8, 60);
+                    const outterRadius = Math.min(innerRadius * 1.15, 80);
                     return {
                         radius: [outterRadius, innerRadius],
                         label: {
-                            fontSize: this.titleFontSize / 1.5
+                            fontSize: Math.min(this.titleFontSize / 1.5, 14)
                         }
                     };
                 });
